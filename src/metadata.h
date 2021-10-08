@@ -4,20 +4,14 @@
 
 typedef struct Data
 {
-    
-    Value adress;
+    void* memoryAdress;
     bool occupy;
     int size;
     struct Data* next;
+        
     
 
 
 }Data;
 
-typedef struct Adress
-{
-    Data* head;
-    void* memoryAdress;
 
-    
-}Adress;

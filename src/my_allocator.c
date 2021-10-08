@@ -4,80 +4,98 @@
 #include "metadata.h"
 #define _DEFAULT_SOURCE
 
-static Adress *base = NULL;
+static Data *base = NULL;
+
+void *memoryInit(int size) // definition de la memoire a allouer
+{
+    void *pointer = sbrk(0);
+    sbrk(size);
+    return pointer;
+}
 
 Data *metaInit(int size)
 {
     Data *init = NULL;
-    init = sbrk(1);
+    init = sbrk(sizeof(Data));
     init->occupy = true;
     init->size = size;
-    sbrk(4);
     init->next = NULL;
-    sbrk(sizeof(8));
+    init->memoryAdress = memoryInit(size); //adresse de la memoire allouer
+    init->next = sbrk(0);                  // initialisation de la prochaine struct data dans la struct actuelle
+    init->next->size = 0;                  // initialisation pour la boucle (ne fonctionne pas )
 
-    init->next = sbrk(0);
     return init;
 }
 
-Adress *adressInit(size)
+Data* findData(Data* meta, int size )
 {
-    Adress *memory = NULL;
-    memory->head = metaInit(size);
-    memory->memoryAdress=sbrk(0);
-    sbrk(size);
-    return memory;
-
-
-
+    Data *cur = base;
+    while (cur->size != 0)
+    {
+        if (cur->size >= size  && cur->occupy == false) // si la memoire est n'est pas occupe ET si la taille est suffisante 
+        {
+            cur->size = size;
+            cur->occupy = true;
+            meta = cur;
+            return meta;
+        }
+        cur = cur->next;
+    }
+    return meta;
 }
 
 void *my_alloc(int size)
 {
-    bool verifyer = false;
-    Adress *meta = NULL;
-
-    if (base == NULL)
+    Data *meta = NULL;
+    if (base == NULL) // verification si le head existe
     {
-        base = adressInit(size);
+        base = metaInit(size);
         return base->memoryAdress;
-    }
+        }
     else
     {
-        Adress *cur = base;
-
-        while (cur->head != NULL)
-        {
-            if (cur->head->size >= (sizeof(Data) + size + 1) && cur->head->occupy == false)
-            {
-                verifyer = true;
-
-                meta = cur;
-                cur->head->occupy = true;
-            }
-
-            cur = cur->next;
-        }
+    meta = findData(meta, size);
     }
-    if (verifyer == false)
+    if (meta == NULL)
     {
         meta = metaInit(size);
     }
-
-    return &meta->next;
+    return meta->memoryAdress;
 }
-void my_free(void *ptr); // ??
+
+
+void my_free(void *ptr)
+{
+
+    Data *cur = base;
+    while (cur->size != 0)
+    {
+        if (cur->memoryAdress == ptr)
+        {
+            cur->occupy = false;
+            break;
+        }
+
+        cur = cur->next;
+    }
+}
 
 int main()
 {
     printf("Starting...");
-
     int *a = my_alloc(sizeof(int));
     *a = 10;
-    printf("(malloc) a = %d\n", *a);
+    printf("(malloc) a = %d, memory adress= %p\n", *a, a);
 
     int *b = my_alloc(sizeof(int));
     *b = 20;
-    printf("(malloc) b = %d\n", *b);
+    printf("(malloc) b = %d,  memory adress= %p\n", *b, b);
+
+    my_free(a);
+
+    int *c = my_alloc(sizeof(int));
+    *c = 90;
+    printf("(malloc) c = %d,  memory adress= %p\n", *c, c);
+
     return 0;
 }
