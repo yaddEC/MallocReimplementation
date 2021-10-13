@@ -6,19 +6,27 @@
 void *my_malloc(int size); // ??
 void my_free(void *ptr);   // ??
 
+
 int main()
 {
-    void *brkAddress = sbrk(0);
-    printf("break is currently at %p\n", brkAddress);
-    brkAddress = sbrk(10);
-    printf("break is currently at %p\n", brkAddress);
-    int *value;
-    value = calloc(10,10*sizeof(int));
-    printf("value = %d\n", *value);
-    brk(0x55555557a0a0);
-    brkAddress = sbrk(0)     ;
+    printf("Starting...");
+    int *a = my_alloc(sizeof(int));
+    *a = 10;
+    printf("(malloc) a = %d, memory adress= %p\n", *a, a);
 
-    printf("break is currently at %p\n", brkAddress);
+    int *b = my_alloc(sizeof(int));
+    *b = 20;
+    printf("(malloc) b = %d,  memory adress= %p\n", *b, b);
+
+    my_free(a);
+
+    int *c = my_alloc(sizeof(int));
+    *c = 90;
+    printf("(malloc) c = %d,  memory adress= %p\n", *c, c);
+
+    my_free(b);
+    my_free(c);
 
     return 0;
 }
+
