@@ -4,27 +4,18 @@
 #include <stdlib.h>
 #include "metadata.h"
 
-
 static Data *base = NULL;
-
-void *memoryInit(int size) // definition de la memoire a allouer
-{
-    void *pointer = sbrk(0);
-    sbrk(size);
-    return pointer;
-}
 
 Data *metaInit(int size)
 {
     Data *init = NULL;
     init = sbrk(sizeof(Data));
     init->occupy = true;
-    init->size = size;
+    init->size = size + sizeof(Data);
     init->next = NULL;
-    init->memoryAdress = memoryInit(size); //adresse de la memoire allouer
-    init->next = sbrk(0);                  // initialisation de la prochaine struct data dans la struct actuelle
-    init->next->size = 0;                  // initialisation de la condition pour la boucle  (la condition NULL n'est pas possible)
-
+    init->memoryAdress = sbrk(size); //adresse de la memoire allouer
+    init->next = sbrk(0);            // initialisation de la prochaine struct data dans la struct actuelle
+    init->next->size = 0;            // initialisation de la condition pour la boucle  (la condition NULL n'est pas possible)
     return init;
 }
 
@@ -34,30 +25,22 @@ void debugInfo()
 
     while (cur->size != 0)
     {
-
-        printf("data adress = %p|| memory adress = %p || size = %d || next data = %p ||occupy =%s \n", cur, cur->memoryAdress, cur->size, cur->next, cur->occupy ? "true" : "false");
+        printf("data adress = %p|| memory adress = %p || allocated size = %d || total size = %d|| next data = %p ||occupy =%s \n", cur, cur->memoryAdress, cur->size - 24, cur->size, cur->next, cur->occupy ? "true" : "false");
         cur = cur->next;
     }
-
     printf("\n");
 }
 
-Data *split(Data *cur, int size)
+void split(Data *cur, int size)
 {
-
-    void *cache = cur->next;
-    sbrk(sizeof(Data));
-    cur->occupy = true;
-
-    cur->next = sbrk(0);
-    cur->next->next = cache;
-    cur->next->size = cur->size - size;
-    cur->size = size;
-
-    cur->next->memoryAdress = cur->memoryAdress + size;
-    brk(cur->next);
-    cur->next->occupy = false;
-    return cur;
+    char *curData = cur;
+    Data *newMetadata = curData + sizeof(Data) + size;
+    newMetadata->occupy = false;
+    newMetadata->size = cur->size - sizeof(Data) - size;
+    newMetadata->next = cur->next;
+    cur->next = newMetadata;
+    cur->size = cur->size - newMetadata->size;
+    newMetadata->memoryAdress = newMetadata + sizeof(Data);
 }
 
 Data *findData(Data *meta, int size)
@@ -65,20 +48,21 @@ Data *findData(Data *meta, int size)
     Data *cur = base;
     while (cur->size != 0)
     {
-        if (cur->size == size && cur->occupy == false) // si la memoire n'est pas occupe ET si la taille est  suffisante
+        if (cur->size == size + 24 && cur->occupy == false) // si la memoire n'est pas occupe ET si la taille est  suffisante
         {
-            cur->size = size;
+            cur->size = size + sizeof(Data);
             cur->occupy = true;
             meta = cur;
             return meta;
         }
-        else if (cur->size > size && cur->occupy == false) // si la memoire n'est pas occupe ET si la taille est superieur
+        else if (cur->size > size + 24 && cur->occupy == false) // si la memoire n'est pas occupe ET si la taille est superieur
         {
-            return split(cur, size);
+            split(cur, size);
+            cur->occupy = true;
+            return cur;
         }
         cur = cur->next;
     }
-
     return meta;
 }
 
@@ -121,7 +105,6 @@ void my_free(void *ptr)
     {
         if (mergeOrNot(cur, ptr) == true)
             break;
-
         else if (cur->memoryAdress == ptr)
         {
             cur->occupy = false;
@@ -130,3 +113,42 @@ void my_free(void *ptr)
         cur = cur->next;
     }
 }
+
+void *my_calloc(int number, int size)
+{
+    char *callmeta = my_alloc(number * size);
+    for (int i = 0; i < number * size; i++)
+    {
+        callmeta[i] = 0;
+    }
+    return callmeta;
+}
+
+void *my_realloc(void *ptr, int size)
+{
+    Data *cur = base;
+    while (cur->size != 0)
+    {
+        if (cur->next->memoryAdress == ptr && cur->size + cur->next->size >= size && cur->occupy == false) // si la memoire precedente a celle qu'on recherche est libre   ET   que leurs tailles combine est sup ou egal a celle du param
+        {
+            char *memcache=NULL;
+            int oldsize = cur->next->size;
+            for (int i = 0; i < oldsize; i++)
+            {
+                memcache[i] = cur->next->memoryAdress+i;
+            }
+
+
+            if (cur->size + oldsize > size)
+            {
+                split(cur, size);
+            }
+            my_free(cur->next);
+           
+                cur->memoryAdress= memcache;
+
+            cur->occupy = true;
+        }
+    }
+}
+ 
