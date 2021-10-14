@@ -22,11 +22,11 @@ void test1()
    // MALLOC
 
    printf("Starting MALLOC\n");
-   int *a = my_alloc(sizeof(int));
+   int *a = ALLOC(sizeof(int));
    *a = 10;
    printf("(malloc) a = %d\n", *a);
 
-   int *b = my_alloc(sizeof(int));
+   int *b = ALLOC(sizeof(int));
    *b = 20;
    printf("(malloc) b = %d\n", *b);
 
@@ -34,13 +34,13 @@ void test1()
 
    // FREE
    printf("Starting MALLOC\n");
-   my_free(a);
+   FREE(a);
 
    debugInfo();
    //  ALLOUEMENT DYNAMIQUE
 
    printf("Starting ALLOUEMENT DYNAMIQUE\n");
-   int *c = my_alloc(sizeof(int));
+   int *c = ALLOC(sizeof(int));
    *c = 90;
    printf("(malloc) c = %d\n", *c);
    debugInfo();
@@ -48,41 +48,49 @@ void test1()
    //  MERGE
 
    printf("Starting MERGE\n");
-   int *d = my_alloc(50 * sizeof(int));
+
+     int *d = ALLOC(50 * sizeof(int));
    *d = 50;
-   int *f = my_alloc(sizeof(int));
+    int *j = ALLOC(sizeof(int));
+   *j = 90;
+
+    
+   int *f = ALLOC(sizeof(int));
    *f = 90;
    printf("avant MERGE\n");
    debugInfo();
+
    printf("apres MERGE\n");
-   my_free(d);
-   my_free(f);
+   FREE(d);
+    FREE(j);
    debugInfo();
+
 
    //  SPLIT
    printf("Starting SPLIT\n");
-      int *g = my_alloc(sizeof(int));
-      *g = 50;
+   int *g = ALLOC(sizeof(int));
+   *g = 50;
 
    debugInfo();
 
- // CALLOC
-  printf("Starting SPLIT\n");
-    int *h;
-   h = my_calloc(2, sizeof(int));
-    printf("(calloc) h = %d\n", *h);
-    debugInfo();
+   // CALLOC
+   printf("Starting SPLIT+CALLOC\n");
+   int *h;
+   h = CALLOC(2, sizeof(int));
+   printf("(calloc) h = %d\n", *h);
+   debugInfo();
 
-    FREE(h);
-}
+   FREE(h);
 
    // REALLOC
-   // b = REALLOC(b, 10 * sizeof(int));
-   // b[1] = 20;
-   // debugInfo();
-   // FREE(b); // FREE
+   printf("Starting REALLOC\n");
+   b = REALLOC(b, 10 * sizeof(int));
 
-  
+   b[1] = 200;
+   printf("(realloc) b[0] = %d, b[1] = %d,&b[0]=%p,&b[1]=%p\n", b[0], b[1], &b[0], &b[1]);
+   debugInfo();
+   FREE(b); // FREE
+}
 
 int main()
 {

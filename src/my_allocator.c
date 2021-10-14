@@ -33,8 +33,8 @@ void debugInfo()
 
 void split(Data *cur, int size)
 {
-    char *curData = cur;
-    Data *newMetadata = curData + sizeof(Data) + size;
+    char *curData = (char*)cur;
+    Data *newMetadata = (Data*)curData + sizeof(Data) + size;
     newMetadata->occupy = false;
     newMetadata->size = cur->size - sizeof(Data) - size;
     newMetadata->next = cur->next;
@@ -68,6 +68,10 @@ Data *findData(Data *meta, int size)
 
 void *my_alloc(int size)
 {
+    while(size%8!=0){
+        size++;
+    }
+
     Data *meta = NULL;
     if (base == NULL) // verification si le head existe
     {
@@ -87,7 +91,7 @@ void *my_alloc(int size)
 
 bool mergeOrNot(Data *cur, void *ptr)
 {
-    if ((cur->next->memoryAdress == ptr && cur->occupy == false) || (cur->memoryAdress == ptr && cur->next->occupy == false)) // si la memoire que l'on free est a cote d'une memoire libre
+    if (((cur->next->memoryAdress == ptr && cur->occupy == false) || (cur->memoryAdress == ptr && cur->next->occupy == false))&&cur->next->size!=0) // si la memoire que l'on free est a cote d'une memoire libre
     {
         cur->size += cur->next->size;
         cur->occupy = false;
@@ -95,6 +99,13 @@ bool mergeOrNot(Data *cur, void *ptr)
         return true;
     }
     return false;
+}
+void isLast(Data *cur)
+{
+    if(cur->next->size==0){
+        brk(sbrk(0)-(cur->size-24));
+        cur->size=0;     
+    }
 }
 
 void my_free(void *ptr)
@@ -104,10 +115,14 @@ void my_free(void *ptr)
     while (cur->size != 0)
     {
         if (mergeOrNot(cur, ptr) == true)
+        {
+           isLast(cur);
             break;
+        }
         else if (cur->memoryAdress == ptr)
         {
             cur->occupy = false;
+            isLast(cur);
             break;
         }
         cur = cur->next;
@@ -127,28 +142,42 @@ void *my_calloc(int number, int size)
 void *my_realloc(void *ptr, int size)
 {
     Data *cur = base;
+    Data *meta = NULL;
+    char *curData = NULL;
     while (cur->size != 0)
     {
-        if (cur->next->memoryAdress == ptr && cur->size + cur->next->size >= size && cur->occupy == false) // si la memoire precedente a celle qu'on recherche est libre   ET   que leurs tailles combine est sup ou egal a celle du param
+        if (cur->memoryAdress == ptr && cur->next->size >= size && cur->next->occupy == false) // si la memoire suivante a celle qu'on recherche est libre   ET   que leurs tailles combine est sup ou egal a celle du param
         {
-            char *memcache=NULL;
-            int oldsize = cur->next->size;
+            meta = cur->next;
+            curData = meta->memoryAdress;
+            if (meta->size > size)
+            {
+                split(meta, size);
+            }
+            int oldsize = cur->size;
+            char *ptrData = cur->memoryAdress;
             for (int i = 0; i < oldsize; i++)
             {
-                memcache[i] = cur->next->memoryAdress+i;
+                curData[i] = ptrData[i];
             }
+            meta->occupy = true;
+            my_free(cur->memoryAdress);
 
-
-            if (cur->size + oldsize > size)
-            {
-                split(cur, size);
-            }
-            my_free(cur->next);
-           
-                cur->memoryAdress= memcache;
-
-            cur->occupy = true;
+            return meta;
         }
+        else if (cur->memoryAdress == ptr)
+        {
+            curData = my_alloc(size);
+            int oldsize = cur->size;
+            char *ptrData = cur->memoryAdress;
+            for (int i = 0; i < oldsize; i++)
+            {
+                curData[i] = ptrData[i];
+            }
+            my_free(cur->memoryAdress);
+            return curData;
+        }
+        cur = cur->next;
     }
+    return NULL;
 }
- 
